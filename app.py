@@ -3,8 +3,10 @@ import time
 import os
 import sys
 import asyncio
+import cherrypy
 import logging
-from datetime import datetime
+import pandas as pd
+from datetime import datetime, timedelta
 from multiprocessing import Process, Queue
 from queue import Empty as EmptyQueueException
 import tornado.ioloop
@@ -13,7 +15,7 @@ from tornado.httpserver import HTTPServer
 from prometheus_client import Gauge, generate_latest, REGISTRY
 from prometheus_api_client import PrometheusConnect, Metric
 from configuration import Configuration
-import fourier_model as model
+import prophet_model as model
 import schedule
 
 # Set up logging
@@ -82,7 +84,7 @@ class MainHandler(tornado.web.RequestHandler):
             )
 
             metric_name = predictor_model.metric.metric_name
-            prediction = predictor_model.predict_value(datetime.now())
+            prediction = predictor_model.predict_value(datetime.now() - timedelta(hours=2))
 
             # Check for all the columns available in the prediction
             # and publish the values for each of them

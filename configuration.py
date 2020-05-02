@@ -36,7 +36,7 @@ class Configuration:
     metrics_list = str(
         os.getenv(
             "METRICS_LIST",
-            "container_memory_usage_bytes{id='/'}",
+            "http_requests_total{namespace='default'}",
         )
     ).split(";")
 
@@ -44,12 +44,12 @@ class Configuration:
     # example: if set to 15d will train the model on past 15 days of data,
     # every time new data is added, it will truncate the data that is out of this range.
     rolling_training_window_size = parse_timedelta(
-        "now", os.getenv("ROLLING_TRAINING_WINDOW_SIZE", "18m")
+        "now", os.getenv("ROLLING_TRAINING_WINDOW_SIZE", "2h")
     )
 
     # How often should the anomaly detector retrain the model (in minutes)
     retraining_interval_minutes = int(
-        os.getenv("RETRAINING_INTERVAL_MINUTES", "18")
+        os.getenv("RETRAINING_INTERVAL_MINUTES", "60")
     )
     metric_chunk_size = parse_timedelta("now", str(retraining_interval_minutes) + "m")
 
@@ -58,9 +58,9 @@ class Configuration:
     # threshold value to calculate true anomalies using a linear function
     true_anomaly_threshold = float(os.getenv("TRUE_ANOMALY_THRESHOLD", "0.001"))
 
-    metric_start_time = parse_datetime(os.getenv("DATA_START_TIME", "2020-25-04 13:00:00"))
+    metric_start_time = parse_datetime(os.getenv("DATA_START_TIME", "2020-02-05 13:00:00"))
 
-    metric_end_time = parse_datetime(os.getenv("DATA_END_TIME", "2020-25-04 13:36:00"))
+    metric_end_time = parse_datetime(os.getenv("DATA_END_TIME", "2020-02-05 13:36:00"))
 
     metric_train_data_end_time = metric_start_time + rolling_training_window_size
 
