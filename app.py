@@ -3,7 +3,6 @@ import time
 import os
 import sys
 import asyncio
-import cherrypy
 import logging
 import pandas as pd
 from datetime import datetime, timedelta
