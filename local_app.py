@@ -163,10 +163,11 @@ if __name__ == "__main__":
     train_model(initial_run=True, data_queue=predicted_model_queue)
     # Set up the tornado web app
     app = make_app(predicted_model_queue)
-    app.listen(8087)
-    server_process = Process(target=tornado.ioloop.IOLoop.instance().start)
+    server = HTTPServer(app)
+    server.bind(8087)
+    server.start()
+    tornado.ioloop.IOLoop.current().start()
     # Start up the server to expose the metrics.
-    server_process.start()
 
     # Schedule the model training
     schedule.every(Configuration.retraining_interval_minutes).minutes.do(

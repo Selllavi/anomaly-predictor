@@ -1,0 +1,10 @@
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: anomaly-predictor-route
+  labels:
+    app: anomaly-predictor
+spec:
+  to:
+    kind: Service
+    name: anomaly-predictor-service

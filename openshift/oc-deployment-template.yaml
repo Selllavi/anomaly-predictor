@@ -7,14 +7,10 @@ metadata:
     openshift.io/display-name: "anomaly detector"
     version: 0.1.0
   labels:
-    application: ${APPLICATION_NAME}
-    template: ${APPLICATION_NAME}-template
-    app: ${APPLICATION_NAME}
+    application: anomaly-predictor
+    template: anomaly-predictor-template
+    app: anomaly-predictor
 parameters:
-  - description: The name for application
-    value: 'anomaly-detector-test'
-    name: APPLICATION_NAME
-    required: true
   - name: GIT_URI
     value: "https://github.com/Selllavi/anomaly-predictor.git"
     required: true
@@ -51,21 +47,21 @@ objects:
   - apiVersion: v1
     kind: DeploymentConfig
     metadata:
-      name: ${APPLICATION_NAME}
+      name: anomaly-predictor
       labels:
-        deploymentConfig: ${APPLICATION_NAME}
-        app: ${APPLICATION_NAME}
+        deploymentConfig: anomaly-predictor
+        app: anomaly-predictor
     spec:
       replicas: 1
       selector:
-        deploymentConfig: ${APPLICATION_NAME}
+        deploymentConfig: anomaly-predictor
       strategy:
         type: Rolling
       template:
         metadata:
           labels:
-            deploymentConfig: ${APPLICATION_NAME}
-            app: ${APPLICATION_NAME}
+            deploymentConfig: anomaly-predictor
+            app: anomaly-predictor
         spec:
           containers:
             - env:
@@ -81,9 +77,9 @@ objects:
                   value: "${ROLLING_TRAINING_WINDOW_SIZE}"
                 - name: DEBUG_MODE
                   value: "${DEBUG_MODE}"
-              image: ${APPLICATION_NAME}
+              image: anomaly-predictor
               imagePullPolicy: IfNotPresent
-              name: ${APPLICATION_NAME}
+              name: anomaly-predictor
               resources:
                 requests:
                   memory: 1Gi
@@ -94,26 +90,3 @@ objects:
               terminationMessagePath: /dev/termination-log
           dnsPolicy: ClusterFirst
           restartPolicy: Always
-  - apiVersion: v1
-    kind: Service
-    metadata:
-      name: ${APPLICATION_NAME}-service
-      labels:
-        app: ${APPLICATION_NAME}
-    spec:
-      ports:
-        - port: 8087
-          name: http
-      selector:
-        app: ${APPLICATION_NAME}
-
-  - apiVersion: route.openshift.io/v1
-    kind: Route
-    metadata:
-      name: ${APPLICATION_NAME}-route
-      labels:
-        app: ${APPLICATION_NAME}
-    spec:
-      to:
-        kind: Service
-        name: ${APPLICATION_NAME}-service

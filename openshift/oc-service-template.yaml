@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: anomaly-predictor-service
+  labels:
+    app: anomaly-predictor
+spec:
+  ports:
+    - port: 8087
+      name: http
+  selector:
+    app: anomaly-predictor
