@@ -11,9 +11,6 @@ metadata:
     template: anomaly-predictor-template
     app: anomaly-predictor
 parameters:
-  - name: GIT_URI
-    value: "https://github.com/Selllavi/anomaly-predictor.git"
-    required: true
   - name: DEBUG_MODE
     description: "Enable verbose log for debugging"
     value: "False"
@@ -28,7 +25,7 @@ parameters:
     description: "List of metrics (with labels), that will be collected from prometheus and predicted"
     required: true
     value: >
-      "container_memory_usage_bytes{id='/'}"
+      container_memory_usage_bytes{id='/'}
   - name: RETRAINING_INTERVAL_MINUTES
     description: "How often should the anomaly detector retrain the model (in minutes)"
     required: true
@@ -77,16 +74,9 @@ objects:
                   value: "${ROLLING_TRAINING_WINDOW_SIZE}"
                 - name: DEBUG_MODE
                   value: "${DEBUG_MODE}"
-              image: anomaly-predictor
+              image: '172.30.1.1:5000/test/anomaly-predictor:latest'
               imagePullPolicy: IfNotPresent
               name: anomaly-predictor
-              resources:
-                requests:
-                  memory: 1Gi
-                  cpu: "2"
-                limits:
-                  memory: 2Gi
-                  cpu: "2"
               terminationMessagePath: /dev/termination-log
           dnsPolicy: ClusterFirst
           restartPolicy: Always
