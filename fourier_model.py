@@ -47,7 +47,7 @@ class MetricPredictor:
         restored_signal = restored_signal + p[0] * time_steps
         return restored_signal[n:]
 
-    def train(self, metric_data=None, prediction_duration=15):
+    def train(self, metric_data=None, prediction_duration=15, seasonality=None):
         """Train the Fourier model and store the predictions in pandas dataframe."""
         prediction_range = prediction_duration
         # convert incoming metric to Metric Object

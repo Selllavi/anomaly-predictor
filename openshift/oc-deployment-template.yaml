@@ -36,6 +36,21 @@ parameters:
        example: if set to 15d will train the model on past 15 days of data"
     required: true
     value: "18m"
+  - name: ALGORITHM
+    description: >
+      "The anomaly detection algorithm (basic, agile, or robust)."
+    required: true
+    value: "agile"
+  - name: DEVIATIONS
+    description: >
+      "Width of the gray band. bounds can be interpreted as the standard deviations for selected algorithm"
+    required: true
+    value: "2"
+  - name: SEASONALITY
+    description: >
+        "The seasonality (yearly, daily, or weekly) of the cycle for the agile or robust algorithm to analyze the metric."
+    required: true
+    value: "daily"
   - name: OC_APP_IMAGE_NAME
     description: "name of the image that should be deployed"
     value: "anomaly-detector-image"
@@ -72,6 +87,12 @@ objects:
                   value: "${RETRAINING_INTERVAL_MINUTES}"
                 - name: ROLLING_TRAINING_WINDOW_SIZE
                   value: "${ROLLING_TRAINING_WINDOW_SIZE}"
+                - name: ALGORITHM
+                  value: "${ALGORITHM}"
+                - name: DEVIATIONS
+                  value: "${DEVIATIONS}"
+                - name: SEASONALITY
+                  value: "${SEASONALITY}"
                 - name: DEBUG_MODE
                   value: "${DEBUG_MODE}"
               image: '172.30.1.1:5000/test/anomaly-predictor:latest'

@@ -1,7 +1,11 @@
 """docstring for installed packages."""
 import os
 import logging
+import fourier_model
+import prophet_model
+import sarima_model
 from prometheus_api_client.utils import parse_datetime, parse_timedelta
+import enum
 
 if os.getenv("FLT_DEBUG_MODE", "False") == "True":
     LOGGING_LEVEL = logging.DEBUG  # Enable Debug mode
@@ -19,7 +23,7 @@ class Configuration:
     """docstring for Configuration."""
 
     # url for the prometheus host
-    prometheus_url = os.getenv("PROMETEUS_URL", "http://prometheus-k8s-monitoring.192.168.99.117.nip.io/")
+    prometheus_url = os.getenv("PROMETEUS_URL", "http://prometheus-k8s-monitoring.192.168.99.101.nip.io")
 
     # any headers that need to be passed while connecting to the prometheus host
     prometheus_headers = None
@@ -52,6 +56,25 @@ class Configuration:
         os.getenv("RETRAINING_INTERVAL_MINUTES", "60")
     )
     metric_chunk_size = parse_timedelta("now", str(retraining_interval_minutes) + "m")
+
+    deviations = int(
+        os.getenv("DEVIATIONS", "2")
+    )
+
+    algorithm_name = str(
+        os.getenv("ALGORITHM", "robust")
+    )
+
+    algorithm_resolver = {
+        "robust": prophet_model.MetricPredictor,
+        "agile": sarima_model.MetricPredictor,
+        "basic": fourier_model.MetricPredictor
+    }
+    algorithm = algorithm_resolver.get(algorithm_name, "robust")
+
+    seasonality = str(
+        os.getenv("SEASONALITY", "daily")
+    )
 
     mlflow_tracking_uri = "http://localhost:5000"
 

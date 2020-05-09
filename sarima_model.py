@@ -15,8 +15,8 @@ _LOGGER = logging.getLogger(__name__)
 class MetricPredictor:
     """docstring for Predictor."""
 
-    model_name = "Arima"
-    model_description = "Prediction values based on Arima procedure"
+    model_name = "Sarima"
+    model_description = "Prediction values based on Sarima procedure"
     model = None
     predicted_df = None
     metric = None
@@ -25,8 +25,8 @@ class MetricPredictor:
         """Initialize the Metric object."""
         self.metric = Metric(metric, rolling_data_window_size)
 
-    def train(self, metric_data=None, prediction_duration=15):
-        """Train the Holt-Winters model and store the predictions in predicted_df."""
+    def train(self, metric_data=None, prediction_duration=15, seasonality=None):
+        """Train the Sarima model and store the predictions in predicted_df."""
         prediction_freq = "1MIN"
         # convert incoming metric to Metric Object
 

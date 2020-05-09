@@ -14,7 +14,6 @@ from tornado.httpserver import HTTPServer
 from prometheus_client import Gauge, generate_latest, REGISTRY
 from prometheus_api_client import PrometheusConnect, Metric
 from configuration import Configuration
-import prophet_model as model
 import schedule
 
 # Set up logging
@@ -25,6 +24,9 @@ METRICS_LIST = Configuration.metrics_list
 # list of ModelPredictor Objects shared between processes
 PREDICTOR_MODEL_LIST = list()
 
+PREDICTOR_MODEL = Configuration.algorithm
+
+DEVIATIONS = Configuration.deviations
 
 pc = PrometheusConnect(
     url=Configuration.prometheus_url,
@@ -38,7 +40,7 @@ for metric in METRICS_LIST:
 
     for unique_metric in metric_init:
         PREDICTOR_MODEL_LIST.append(
-            model.MetricPredictor(
+            PREDICTOR_MODEL(
                 unique_metric,
                 rolling_data_window_size=Configuration.rolling_training_window_size,
             )
@@ -95,9 +97,9 @@ class MainHandler(tornado.web.RequestHandler):
             # Calculate for an anomaly (can be different for different models)
             anomaly = 1
             if (
-                current_metric_value.metric_values["y"][0] < prediction["yhat_upper"][0]
+                current_metric_value.metric_values["y"][0] < prediction["yhat_upper"][0] + DEVIATIONS
             ) and (
-                current_metric_value.metric_values["y"][0] > prediction["yhat_lower"][0]
+                current_metric_value.metric_values["y"][0] > prediction["yhat_lower"][0] - DEVIATIONS
             ):
                 anomaly = 0
 
@@ -143,7 +145,7 @@ def train_model(initial_run=False, data_queue=None):
         # Train the new model
         start_time = datetime.now()
         predictor_model.train(
-            new_metric_data, Configuration.retraining_interval_minutes
+            new_metric_data, Configuration.retraining_interval_minutes, Configuration.seasonality
         )
         _LOGGER.info(
             "Total Training time taken = %s, for metric: %s %s",
