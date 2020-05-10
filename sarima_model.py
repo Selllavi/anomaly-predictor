@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 import statsmodels.api as sm
 from numpy import fft
-from statsmodels.tsa.arima_model import ARIMA
+from statsmodels.tsa.statespace.sarimax import SARIMAX
 from prometheus_api_client import Metric
 
 # Set up logging
@@ -37,18 +37,18 @@ class MetricPredictor:
         # Don't really need to store the model, as prophet models are not retrainable
         # But storing it as an example for other models that can be retrained
 
-        dates = sm.tsa.datetools.dates_from_range("2020m1", length=len(self.metric.metric_values.y))
-
-        self.model = ARIMA(pd.Series(self.metric.metric_values.y, index=dates), order=(1,0,1)).fit(disp=0)
-
         data = self.metric.metric_values
+        values = pd.Series(self.metric.metric_values.y.values, index = data["ds"])
+        self.model = SARIMAX(values, order=(1, 1, 1),
+                                seasonal_order=(1, 1, 0, 12), enforce_stationarity = True, enforce_invertibility = False)
+
         _LOGGER.info(
             "training data range: %s - %s", self.metric.start_time, self.metric.end_time
         )
         # _LOGGER.info("training data end time: %s", self.metric.end_time)
         _LOGGER.debug("begin training")
-
-        forecast = self.model.forecast(steps=prediction_duration)[0]
+        results = self.model.fit(dsip=-1)
+        forecast = results.forecast(prediction_duration)
         dataframe_cols = {}
         dataframe_cols["yhat"] = np.array(forecast)
 
@@ -56,7 +56,7 @@ class MetricPredictor:
         _LOGGER.debug("Creating Dummy Timestamps.....")
         maximum_time = max(data["ds"])
         dataframe_cols["timestamp"] = pd.date_range(
-            maximum_time, periods=len(forecast), freq="min"
+            maximum_time, periods=len(forecast), freq="30s"
         )
 
         # create dummy upper and lower bounds
@@ -75,7 +75,7 @@ class MetricPredictor:
             ]
         )
         upper_bound[0] = np.mean(
-            forecast[0]
+            forecast
         )  # to account for no std of a single value
         lower_bound = np.array(
             [
@@ -90,7 +90,7 @@ class MetricPredictor:
             ]
         )
         lower_bound[0] = np.mean(
-            forecast[0]
+            forecast
         )  # to account for no std of a single value
         dataframe_cols["yhat_upper"] = upper_bound
         dataframe_cols["yhat_lower"] = lower_bound

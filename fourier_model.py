@@ -72,7 +72,7 @@ class MetricPredictor:
         _LOGGER.debug("Creating Dummy Timestamps.....")
         maximum_time = max(data["ds"])
         dataframe_cols["timestamp"] = pd.date_range(
-            maximum_time, periods=len(forecast_values), freq="min"
+            maximum_time, periods=len(forecast_values), freq="30s"
         )
 
         # create dummy upper and lower bounds
