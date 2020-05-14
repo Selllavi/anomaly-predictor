@@ -62,7 +62,7 @@ class Configuration:
     )
 
     algorithm_name = str(
-        os.getenv("ALGORITHM", "robust")
+        os.getenv("ALGORITHM", "agile")
     )
 
     algorithm_resolver = {
@@ -70,7 +70,7 @@ class Configuration:
         "agile": sarima_model.MetricPredictor,
         "basic": fourier_model.MetricPredictor
     }
-    algorithm = algorithm_resolver.get(algorithm_name, "robust")
+    algorithm = algorithm_resolver.get(algorithm_name, "agile")
 
     seasonality = str(
         os.getenv("SEASONALITY", "daily")

@@ -15,7 +15,7 @@ _LOGGER = logging.getLogger(__name__)
 class MetricPredictor:
     """docstring for Predictor."""
 
-    model_name = "Sarima"
+    model_name = "agile"
     model_description = "Prediction values based on Sarima procedure"
     model = None
     predicted_df = None

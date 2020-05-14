@@ -13,7 +13,7 @@ _LOGGER = logging.getLogger(__name__)
 class MetricPredictor:
     """docstring for Predictor."""
 
-    model_name = "Fourier"
+    model_name = "basic"
     model_description = "Forecast value based on fourier analysis"
     model = None
     predicted_df = None

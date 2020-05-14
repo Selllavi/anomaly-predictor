@@ -12,7 +12,7 @@ _LOGGER = logging.getLogger(__name__)
 class MetricPredictor:
     """docstring for Predictor."""
 
-    model_name = "Prophet"
+    model_name = "robust"
     model_description = "Prediction values based on Prophet procedure"
     model = None
     predicted_df = None

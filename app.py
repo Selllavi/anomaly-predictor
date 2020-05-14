@@ -1,10 +1,14 @@
 """docstring for packages."""
 import time
 import os
-import sys
-import asyncio
+import io
+from bokeh.plotting import figure, output_file, show, save
+from bokeh.models import ColumnDataSource
+from bokeh.models.tools import HoverTool
+from bokeh.resources import CDN
+from bokeh.embed import components
+from jinja2 import Template
 import logging
-import pandas as pd
 from datetime import datetime, timedelta
 from multiprocessing import Process, Queue
 from queue import Empty as EmptyQueueException
@@ -97,9 +101,9 @@ class MainHandler(tornado.web.RequestHandler):
             # Calculate for an anomaly (can be different for different models)
             anomaly = 1
             if (
-                current_metric_value.metric_values["y"][0] < prediction["yhat_upper"][0] + DEVIATIONS
+                    current_metric_value.metric_values["y"][0] < prediction["yhat_upper"][0] + DEVIATIONS
             ) and (
-                current_metric_value.metric_values["y"][0] > prediction["yhat_lower"][0] - DEVIATIONS
+                    current_metric_value.metric_values["y"][0] > prediction["yhat_lower"][0] - DEVIATIONS
             ):
                 anomaly = 0
 
@@ -113,13 +117,103 @@ class MainHandler(tornado.web.RequestHandler):
         self.set_header("Content-Type", "text; charset=utf-8")
 
 
+class GraphHandler(tornado.web.RequestHandler):
+    """Tornado web request handler."""
+
+    def initialize(self, data_queue):
+        """Check if new predicted values are available in the queue before the get request."""
+        try:
+            model_list = data_queue.get_nowait()
+            self.settings["model_list"] = model_list
+        except EmptyQueueException:
+            pass
+
+    async def get(self):
+        """Fetch and publish metric values asynchronously."""
+        # update metric value on every request and publish the metric
+        for predictor_model in self.settings["model_list"]:
+            df = predictor_model.predicted_df
+
+            # Create the plot
+            output_file('static/filename.html')
+            TOOLS = "pan,wheel_zoom,reset,save"
+            plot = figure(plot_width=800, plot_height=300, x_axis_type="datetime", title=predictor_model.model_name,
+                          tools=TOOLS)
+            plot.xaxis.axis_line_color = "rgb(173, 173, 173)"
+            plot.yaxis.axis_line_color = "white"
+            plot.yaxis.major_tick_line_color = "white"
+            plot.xaxis.major_tick_in = 1
+
+            metric_values = predictor_model.metric.metric_values
+            source_predict = ColumnDataSource(data=dict(values=metric_values.values[:, 1], dates=metric_values.values[:, 0]))
+            source_real = ColumnDataSource(data=dict(values=df.yhat.values, dates=df.yhat.index.values))
+
+            plot.line(x='dates', y='values', source=source_predict, color="red")
+            plot.line(x='dates', y='values', source=source_real, color="aquamarine")
+            plot.xgrid.visible = False
+            plot.title.text_color = "rgb(173, 173, 173)"
+            plot.yaxis.minor_tick_line_color = None
+            plot.add_tools(HoverTool(
+                tooltips=[
+                    ('date', '@dates{|%F %T|}'),
+                    ('value', '$y'),  # use @{ } for field names with spaces
+                ],
+                formatters={
+                    '@dates': 'datetime'
+                },
+                # display a tooltip whenever the cursor is vertically in line with a glyph
+                mode='vline'
+            ))
+
+            script_bokeh, div_bokeh = components(plot)
+            resources_bokeh = CDN.render()
+
+            template = Template(
+                '''<!DOCTYPE html>
+                    <html lang="en">
+                        <head>
+                            <meta charset="utf-8">
+                            <title>Overview</title>
+                            {{ resources }}
+                            {{ script }}
+                            <style>
+                                .embed-wrapper {
+                                    display: flex;
+                                    justify-content: space-evenly;
+                                }
+                            </style>
+                        </head>
+                        <body style="background-color:rgb(246, 246, 246);>                  
+                            <div class="embed-wrapper">
+                                {{ div }}
+                            </div>
+                        </body>
+                    </html>
+                    ''')
+
+            # render everything together
+            html = template.render(resources=resources_bokeh,
+                                   script=script_bokeh,
+                                   div=div_bokeh)
+
+            # save to file
+            out_file_path = "static/filename.html"
+            with io.open(out_file_path, mode='w') as f:
+                f.write(html)
+        # Generate the script and HTML for the plot
+        self.render("static/filename.html")
+
+
 def make_app(data_queue):
     """Initialize the tornado web app."""
     _LOGGER.info("Initializing Tornado Web App")
+    cwd = os.getcwd()
     return tornado.web.Application(
         [
             (r"/metrics", MainHandler, dict(data_queue=data_queue)),
             (r"/", MainHandler, dict(data_queue=data_queue)),
+            (r"/graph", GraphHandler, dict(data_queue=data_queue)),
+            (r"/(.*\.html)", tornado.web.StaticFileHandler, {"path": cwd}),
         ]
     )
 
@@ -131,7 +225,7 @@ def train_model(initial_run=False, data_queue=None):
         data_start_time = datetime.now() - Configuration.metric_chunk_size
         if initial_run:
             data_start_time = (
-                datetime.now() - Configuration.rolling_training_window_size
+                    datetime.now() - Configuration.rolling_training_window_size
             )
 
         # Download new metric data from prometheus
