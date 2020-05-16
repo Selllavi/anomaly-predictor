@@ -1,11 +1,8 @@
 """doctsring for packages."""
-import datetime
 import logging
-import pandas
 from fbprophet import Prophet
 from prometheus_api_client import Metric
 
-# Set up logging
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -25,13 +22,9 @@ class MetricPredictor:
     def train(self, metric_data=None, prediction_duration=15, seasonality=None):
         """Train the Prophet model and store the predictions in predicted_df."""
         prediction_freq = "30s"
-        # convert incoming metric to Metric Object
         if metric_data:
-            # because the rolling_data_window_size is set, this df should not bloat
             self.metric += Metric(metric_data)
 
-        # Don't really need to store the model, as prophet models are not retrainable
-        # But storing it as an example for other models that can be retrained
         self.model = Prophet(
             daily_seasonality=seasonality == "daily", weekly_seasonality=seasonality == "weekly", yearly_seasonality=seasonality == "yearly"
         )
@@ -39,7 +32,6 @@ class MetricPredictor:
         _LOGGER.info(
             "training data range: %s - %s", self.metric.start_time, self.metric.end_time
         )
-        # _LOGGER.info("training data end time: %s", self.metric.end_time)
         _LOGGER.debug("begin training")
 
         self.model.fit(self.metric.metric_values)

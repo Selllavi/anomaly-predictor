@@ -2,15 +2,15 @@
 import time
 import os
 import io
-from bokeh.plotting import figure, output_file, show, save
-from bokeh.models import ColumnDataSource
+from bokeh.plotting import figure, output_file
+from bokeh.models import ColumnDataSource, Band
 from bokeh.models.tools import HoverTool
 from bokeh.resources import CDN
 from bokeh.embed import components
 from jinja2 import Template
 import logging
 from datetime import datetime, timedelta
-from multiprocessing import Process, Queue
+from multiprocessing import Queue
 from queue import Empty as EmptyQueueException
 import tornado.ioloop
 import tornado.web
@@ -20,12 +20,10 @@ from prometheus_api_client import PrometheusConnect, Metric
 from configuration import Configuration
 import schedule
 
-# Set up logging
 _LOGGER = logging.getLogger(__name__)
 
 METRICS_LIST = Configuration.metrics_list
 
-# list of ModelPredictor Objects shared between processes
 PREDICTOR_MODEL_LIST = list()
 
 PREDICTOR_MODEL = Configuration.algorithm
@@ -39,7 +37,6 @@ pc = PrometheusConnect(
 )
 
 for metric in METRICS_LIST:
-    # Initialize a predictor for all metrics first
     metric_init = pc.get_current_metric_value(metric_name=metric)
 
     for unique_metric in metric_init:
@@ -50,7 +47,6 @@ for metric in METRICS_LIST:
             )
         )
 
-# A gauge set for the predicted values
 GAUGE_DICT = dict()
 for predictor in PREDICTOR_MODEL_LIST:
     unique_metric = predictor.metric
@@ -77,10 +73,7 @@ class MainHandler(tornado.web.RequestHandler):
 
     async def get(self):
         """Fetch and publish metric values asynchronously."""
-        # update metric value on every request and publish the metric
         for predictor_model in self.settings["model_list"]:
-            # get the current metric value so that it can be compared with the
-            # predicted values
             current_metric_value = Metric(
                 pc.get_current_metric_value(
                     metric_name=predictor_model.metric.metric_name,
@@ -91,14 +84,11 @@ class MainHandler(tornado.web.RequestHandler):
             metric_name = predictor_model.metric.metric_name
             prediction = predictor_model.predict_value(datetime.now() - timedelta(hours=2))
 
-            # Check for all the columns available in the prediction
-            # and publish the values for each of them
             for column_name in list(prediction.columns):
                 GAUGE_DICT[metric_name].labels(
                     **predictor_model.metric.label_config, value_type=column_name
                 ).set(prediction[column_name][0])
 
-            # Calculate for an anomaly (can be different for different models)
             anomaly = 1
             if (
                     current_metric_value.metric_values["y"][0] < prediction["yhat_upper"][0] + DEVIATIONS
@@ -107,8 +97,6 @@ class MainHandler(tornado.web.RequestHandler):
             ):
                 anomaly = 0
 
-            # create a new time series that has value_type=anomaly
-            # this value is 1 if an anomaly is found 0 if not
             GAUGE_DICT[metric_name].labels(
                 **predictor_model.metric.label_config, value_type="anomaly"
             ).set(anomaly)
@@ -130,25 +118,27 @@ class GraphHandler(tornado.web.RequestHandler):
 
     async def get(self):
         """Fetch and publish metric values asynchronously."""
-        # update metric value on every request and publish the metric
         for predictor_model in self.settings["model_list"]:
             df = predictor_model.predicted_df
 
-            # Create the plot
             output_file('static/filename.html')
             TOOLS = "pan,wheel_zoom,reset,save"
             plot = figure(plot_width=800, plot_height=300, x_axis_type="datetime", title=predictor_model.model_name,
-                          tools=TOOLS)
+                          tools=TOOLS, toolbar_location="above")
             plot.xaxis.axis_line_color = "rgb(173, 173, 173)"
             plot.yaxis.axis_line_color = "white"
             plot.yaxis.major_tick_line_color = "white"
             plot.xaxis.major_tick_in = 1
 
             metric_values = predictor_model.metric.metric_values
-            source_predict = ColumnDataSource(data=dict(values=metric_values.values[:, 1], dates=metric_values.values[:, 0]))
-            source_real = ColumnDataSource(data=dict(values=df.yhat.values, dates=df.yhat.index.values))
+            source_real = ColumnDataSource(data=dict(values=metric_values.values[:, 1], dates=metric_values.values[:, 0]))
+            source_yhat = ColumnDataSource(data=dict(values=df.yhat.values, dates=df.yhat.index.values))
+            source_yhat_bound = ColumnDataSource(data=dict(yhat_upper=df.yhat_upper.values, yhat_lower=df.yhat_lower.values,dates=df.yhat_upper.index.values))
+            band = Band(base='dates', lower='yhat_lower', upper='yhat_upper', source=source_yhat_bound,
+                        level='underlay', fill_alpha=0.5, fill_color="rgb(200, 200, 200)", line_width=0)
+            plot.add_layout(band)
 
-            plot.line(x='dates', y='values', source=source_predict, color="red")
+            plot.line(x='dates', y='values', source=source_yhat, color="red")
             plot.line(x='dates', y='values', source=source_real, color="aquamarine")
             plot.xgrid.visible = False
             plot.title.text_color = "rgb(173, 173, 173)"
@@ -156,12 +146,11 @@ class GraphHandler(tornado.web.RequestHandler):
             plot.add_tools(HoverTool(
                 tooltips=[
                     ('date', '@dates{|%F %T|}'),
-                    ('value', '$y'),  # use @{ } for field names with spaces
+                    ('value', '$y'),
                 ],
                 formatters={
                     '@dates': 'datetime'
                 },
-                # display a tooltip whenever the cursor is vertically in line with a glyph
                 mode='vline'
             ))
 
@@ -181,6 +170,12 @@ class GraphHandler(tornado.web.RequestHandler):
                                     display: flex;
                                     justify-content: space-evenly;
                                 }
+                                .bk-logo {
+                                    display:none !important;
+                                }
+                                .bk-tool-icon-hover {
+                                    display:none !important;
+                                }
                             </style>
                         </head>
                         <body style="background-color:rgb(246, 246, 246);>                  
@@ -191,16 +186,13 @@ class GraphHandler(tornado.web.RequestHandler):
                     </html>
                     ''')
 
-            # render everything together
             html = template.render(resources=resources_bokeh,
                                    script=script_bokeh,
                                    div=div_bokeh)
 
-            # save to file
             out_file_path = "static/filename.html"
             with io.open(out_file_path, mode='w') as f:
                 f.write(html)
-        # Generate the script and HTML for the plot
         self.render("static/filename.html")
 
 
@@ -228,7 +220,6 @@ def train_model(initial_run=False, data_queue=None):
                     datetime.now() - Configuration.rolling_training_window_size
             )
 
-        # Download new metric data from prometheus
         new_metric_data = pc.get_metric_range_data(
             metric_name=metric_to_predict.metric_name,
             label_config=metric_to_predict.label_config,
@@ -236,7 +227,6 @@ def train_model(initial_run=False, data_queue=None):
             end_time=datetime.now(),
         )[0]
 
-        # Train the new model
         start_time = datetime.now()
         predictor_model.train(
             new_metric_data, Configuration.retraining_interval_minutes, Configuration.seasonality
@@ -252,20 +242,16 @@ def train_model(initial_run=False, data_queue=None):
 
 
 if __name__ == "__main__":
-    # Queue to share data between the tornado server and the model training
     predicted_model_queue = Queue()
 
-    # Initial run to generate metrics, before they are exposed
     train_model(initial_run=True, data_queue=predicted_model_queue)
-    # Set up the tornado web app
+
     app = make_app(predicted_model_queue)
     server = HTTPServer(app)
     server.bind(8087)
     server.start()
     tornado.ioloop.IOLoop.current().start()
-    # Start up the server to expose the metrics.
 
-    # Schedule the model training
     schedule.every(Configuration.retraining_interval_minutes).minutes.do(
         train_model, initial_run=False, data_queue=predicted_model_queue
     )
@@ -277,5 +263,4 @@ if __name__ == "__main__":
         schedule.run_pending()
         time.sleep(1)
 
-    # join the server process in case the main process ends
     server_process.join()
