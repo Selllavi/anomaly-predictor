@@ -37,7 +37,7 @@ class Configuration:
     ).split(";")
 
     rolling_training_window_size = parse_timedelta(
-        "now", os.getenv("ROLLING_TRAINING_WINDOW_SIZE", "1h")
+        "now", os.getenv("ROLLING_TRAINING_WINDOW_SIZE", "2m")
     )
 
     retraining_interval_minutes = int(

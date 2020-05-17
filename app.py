@@ -135,11 +135,11 @@ class GraphHandler(tornado.web.RequestHandler):
             source_yhat = ColumnDataSource(data=dict(values=df.yhat.values, dates=df.yhat.index.values))
             source_yhat_bound = ColumnDataSource(data=dict(yhat_upper=df.yhat_upper.values, yhat_lower=df.yhat_lower.values,dates=df.yhat_upper.index.values))
             band = Band(base='dates', lower='yhat_lower', upper='yhat_upper', source=source_yhat_bound,
-                        level='underlay', fill_alpha=0.5, fill_color="rgb(200, 200, 200)", line_width=0)
+                        level='overlay', fill_alpha=0.7, fill_color="rgb(200, 200, 200)", line_width=0)
             plot.add_layout(band)
 
-            plot.line(x='dates', y='values', source=source_yhat, color="red")
-            plot.line(x='dates', y='values', source=source_real, color="aquamarine")
+            plot.line(x='dates', y='values', source=source_yhat, color="blue")
+            plot.line(x='dates', y='values', source=source_real, color="red")
             plot.xgrid.visible = False
             plot.title.text_color = "rgb(173, 173, 173)"
             plot.yaxis.minor_tick_line_color = None
