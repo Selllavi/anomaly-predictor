@@ -5,13 +5,13 @@ import logging
 _LOGGER = logging.getLogger(__name__)
 
 
-def calculate_bounds(forecast_values):
+def calculate_bounds(forecast_values, deviations):
     average = calculate_average(forecast_values)
     lower_bound = np.array(
         [
             (
                     average[i]
-                    - (np.std(forecast_values[:i]) * 3)
+                    - (np.std(forecast_values[:i]) * deviations)
             )
             for i in range(len(forecast_values))
         ]
@@ -20,7 +20,7 @@ def calculate_bounds(forecast_values):
         [
             (
                     average[i]
-                    + (np.std(forecast_values[:i]) * 3)
+                    + (np.std(forecast_values[:i]) * deviations)
             )
             for i in range(len(forecast_values))
         ]

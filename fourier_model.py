@@ -46,7 +46,7 @@ class MetricPredictor:
         restored_signal = restored_signal + p[0] * time_steps
         return restored_signal[n:]
 
-    def train(self, metric_data=None, prediction_duration=15, seasonality=None):
+    def train(self, metric_data=None, prediction_duration=15, seasonality=None, deviations=3):
         """Train the Fourier model and store the predictions in pandas dataframe."""
         prediction_range = prediction_duration
         if metric_data:
@@ -73,7 +73,7 @@ class MetricPredictor:
 
         _LOGGER.debug("Calculating Bounds .... ")
 
-        lower_bound, upper_bound = ct.calculate_bounds(forecast_values)
+        lower_bound, upper_bound = ct.calculate_bounds(forecast_values, deviations)
 
         dataframe_cols["yhat_upper"] = upper_bound
         dataframe_cols["yhat_lower"] = lower_bound

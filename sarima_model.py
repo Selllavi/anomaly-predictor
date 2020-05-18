@@ -22,7 +22,7 @@ class MetricPredictor:
         """Initialize the Metric object."""
         self.metric = Metric(metric, rolling_data_window_size)
 
-    def train(self, metric_data=None, prediction_duration=15, seasonality=None):
+    def train(self, metric_data=None, prediction_duration=15, seasonality=None, deviations=3):
         """Train the Sarima model and store the predictions in predicted_df."""
         if metric_data:
             self.metric += Metric(metric_data)
@@ -49,7 +49,7 @@ class MetricPredictor:
 
         _LOGGER.debug("Computing Bounds .... ")
 
-        lower_bound, upper_bound = ct.calculate_bounds(forecast)
+        lower_bound, upper_bound = ct.calculate_bounds(forecast, deviations)
 
         dataframe_cols["yhat_upper"] = upper_bound
         dataframe_cols["yhat_lower"] = lower_bound

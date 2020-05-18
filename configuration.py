@@ -46,7 +46,7 @@ class Configuration:
     metric_chunk_size = parse_timedelta("now", str(retraining_interval_minutes) + "m")
 
     deviations = int(
-        os.getenv("DEVIATIONS", "2")
+        os.getenv("DEVIATIONS", "3")
     )
 
     algorithm_name = str(

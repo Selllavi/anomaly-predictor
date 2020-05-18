@@ -229,7 +229,7 @@ def train_model(initial_run=False, data_queue=None):
 
         start_time = datetime.now()
         predictor_model.train(
-            new_metric_data, Configuration.retraining_interval_minutes, Configuration.seasonality
+            new_metric_data, Configuration.retraining_interval_minutes, Configuration.seasonality, Configuration.deviations
         )
         _LOGGER.info(
             "Total Training time taken = %s, for metric: %s %s",

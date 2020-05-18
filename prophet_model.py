@@ -19,7 +19,7 @@ class MetricPredictor:
         """Initialize the Metric object."""
         self.metric = Metric(metric, rolling_data_window_size)
 
-    def train(self, metric_data=None, prediction_duration=15, seasonality=None):
+    def train(self, metric_data=None, prediction_duration=15, seasonality=None, deviations=3):
         """Train the Prophet model and store the predictions in predicted_df."""
         prediction_freq = "30s"
         if metric_data:
