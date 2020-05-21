@@ -51,6 +51,11 @@ parameters:
         "The seasonality (yearly, daily, or weekly) of the cycle for the agile or robust algorithm to analyze the metric."
     required: true
     value: "daily"
+  - name: ANOMALY_BORDER
+    description: >
+        "The anomaly border (both, more, or less) detects position of metric compared to gray band, which should be marked as anomaly."
+    required: true
+    value: "both"
   - name: OC_APP_IMAGE_NAME
     description: "name of the image that should be deployed"
     value: "anomaly-detector-image"
@@ -93,6 +98,8 @@ objects:
                   value: "${DEVIATIONS}"
                 - name: SEASONALITY
                   value: "${SEASONALITY}"
+                - name: ANOMALY_BORDER
+                  value: "${ANOMALY_BORDER}"
                 - name: DEBUG_MODE
                   value: "${DEBUG_MODE}"
               image: '172.30.1.1:5000/test/anomaly-predictor:latest'

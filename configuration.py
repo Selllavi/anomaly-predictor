@@ -21,7 +21,7 @@ _LOGGER = logging.getLogger(__name__)
 class Configuration:
     """docstring for Configuration."""
 
-    prometheus_url = os.getenv("PROMETEUS_URL", "http://prometheus-k8s-monitoring.192.168.99.101.nip.io")
+    prometheus_url = os.getenv("PROMETEUS_URL", "http://prometheus-k8s-monitoring.192.168.99.102.nip.io")
 
     prometheus_headers = None
     if os.getenv("PROMETEUS_ACCESS_TOKEN"):
@@ -49,6 +49,10 @@ class Configuration:
         os.getenv("DEVIATIONS", "3")
     )
 
+    anomaly_border = str(
+        os.getenv("ANOMALY_BORDER", "both")
+    )
+
     algorithm_name = str(
         os.getenv("ALGORITHM", "basic")
     )
@@ -58,7 +62,7 @@ class Configuration:
         "agile": sarima_model.MetricPredictor,
         "basic": fourier_model.MetricPredictor
     }
-    algorithm = algorithm_resolver.get(algorithm_name, "agile")
+    algorithm = algorithm_resolver.get(algorithm_name)
 
     seasonality = str(
         os.getenv("SEASONALITY", "daily")
