@@ -42,7 +42,7 @@ class GraphHandler(tornado.web.RequestHandler):
                         level='overlay', fill_alpha=0.7, fill_color="rgb(200, 200, 200)", line_width=0)
             plot.add_layout(band)
 
-            plot.line(x='dates', y='values', source=source_yhat, color="blue")
+            plot.line(x='dates', y='values', source=source_yhat, color="black")
             plot.line(x='dates', y='values', source=source_real, color="red")
             plot.xgrid.visible = False
             plot.title.text_color = "rgb(173, 173, 173)"

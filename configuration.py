@@ -21,7 +21,7 @@ _LOGGER = logging.getLogger(__name__)
 class Configuration:
     """docstring for Configuration."""
 
-    prometheus_url = os.getenv("PROMETEUS_URL", "http://prometheus-k8s-monitoring.192.168.99.102.nip.io")
+    prometheus_url = os.getenv("PROMETEUS_URL", "http://prometheus-k8s-monitoring.192.168.99.104.nip.io")
 
     prometheus_headers = None
     if os.getenv("PROMETEUS_ACCESS_TOKEN"):
@@ -32,12 +32,12 @@ class Configuration:
     metrics_list = str(
         os.getenv(
             "METRICS_LIST",
-            "http_request_duration_microseconds{endpoint='https',handler='prometheus',instance='10.0.2.15:8443',job='apiserver',namespace='default',quantile='0.99',service='kubernetes'}",
+            "go_memstats_heap_objects{endpoint='web',instance='172.17.0.17:9090',job='prometheus-k8s',namespace='monitoring',pod='prometheus-k8s-1',service='prometheus-k8s'}",
         )
     ).split(";")
 
     rolling_training_window_size = parse_timedelta(
-        "now", os.getenv("ROLLING_TRAINING_WINDOW_SIZE", "2m")
+        "now", os.getenv("ROLLING_TRAINING_WINDOW_SIZE", "120m")
     )
 
     retraining_interval_minutes = int(
@@ -54,7 +54,7 @@ class Configuration:
     )
 
     algorithm_name = str(
-        os.getenv("ALGORITHM", "basic")
+        os.getenv("ALGORITHM", "agile")
     )
 
     algorithm_resolver = {

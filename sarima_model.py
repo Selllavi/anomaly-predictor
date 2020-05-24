@@ -29,30 +29,35 @@ class MetricPredictor:
 
         data = self.metric.metric_values
         values = pd.Series(self.metric.metric_values.y.values, index = data["ds"])
-        self.model = SARIMAX(values, order=(1, 1, 1),
-                                seasonal_order=(1, 1, 0, 12), enforce_stationarity = True, enforce_invertibility = False)
+        days = {
+            "daily": 2,
+            "weekly": 7,
+            "yearly": 12
+        }
+        self.model = SARIMAX(values,order=(0,0,0),
+                                seasonal_order=(1,1,1,days.get(seasonality)))
 
         _LOGGER.info(
             "training data range: %s - %s", self.metric.start_time, self.metric.end_time
         )
         _LOGGER.debug("begin training")
-        results = self.model.fit(dsip=-1)
+        results = self.model.fit(method='powell')
         forecast = results.forecast(prediction_duration)
         dataframe_cols = {}
-        dataframe_cols["yhat"] = np.array(forecast)
+        dataframe_cols["yhat"] = np.append(values.get(-1), np.array(forecast))
 
         _LOGGER.debug("Creating Dummy Timestamps.....")
         maximum_time = max(data["ds"])
         dataframe_cols["timestamp"] = pd.date_range(
-            maximum_time, periods=len(forecast), freq="30s"
+            maximum_time, periods=len(forecast)+1, freq="30s"
         )
 
         _LOGGER.debug("Computing Bounds .... ")
 
         lower_bound, upper_bound = ct.calculate_bounds(forecast, deviations)
 
-        dataframe_cols["yhat_upper"] = upper_bound
-        dataframe_cols["yhat_lower"] = lower_bound
+        dataframe_cols["yhat_upper"] = np.append(values.get(-1), upper_bound)
+        dataframe_cols["yhat_lower"] = np.append(values.get(-1), lower_bound)
         _LOGGER.debug("Formatting Forecast to Pandas ..... ")
 
         forecast = pd.DataFrame(data=dataframe_cols)
